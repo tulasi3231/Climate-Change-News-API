@@ -23,63 +23,52 @@ const newspapers = [
     }
 ];
 
-const articles = [];
+const fetchArticles = async (newspaper) => {
+    try {
+        const response = await axios.get(newspaper.address);
+        const html = response.data;
+        const $ = cheerio.load(html);
 
-const fetchArticles = async () => {
-    for (const newspaper of newspapers) {
-        try {
-            const response = await axios.get(newspaper.address);
-            const html = response.data;
-            const $ = cheerio.load(html);
-
-            $('a:contains("climate")', html).each(function () {
-                const title = $(this).text().replace(/[\t\n]/g, '');
-                const url = $(this).attr('href');
-                articles.push({
-                    source: newspaper.name,
-                    title,
-                    url: newspaper.base + url
-                });
+        const articles = [];
+        $('a:contains("climate")', html).each(function () {
+            const title = $(this).text().replace(/[\t\n]/g, '');
+            const url = $(this).attr('href');
+            articles.push({
+                source: newspaper.name,
+                title,
+                url: newspaper.base + url
             });
-        } catch (err) {
-            console.error(err);
-        }
+        });
+
+        return articles;
+    } catch (err) {
+        console.error(err);
+        return [];
     }
 };
 
-fetchArticles().then(() => {
-    app.get('/', (req, res) => {
-        res.json('Welcome to Climate Change News API');
-    });
-
-    app.get('/news', (req, res) => {
-        res.json(articles);
-    });
-
-    app.get('/news/:newspaperId', (req, res) => {
-        const newspaperId = req.params.newspaperId;
-
-        const newspaperAddress = newspapers.filter(newspaper => newspaper.name == newspaperId)[0].address;
-        const newspaperBase = newspapers.filter(newspaper => newspaper.name == newspaperId)[0].base;
-        axios.get(newspaperAddress)
-            .then(response => {
-                const html = response.data;
-                const $ = cheerio.load(html);
-                const specificArticles = [];
-
-                $('a:contains("climate")', html).each(function () {
-                    const title = $(this).text().replace(/[\t\n]/g, '');
-                    const url = $(this).attr('href');
-                    specificArticles.push({
-                        source: newspaperId,
-                        title,
-                        url: newspaperBase + url
-                    });
-                });
-                res.json(specificArticles);
-            })
-            .catch(err => console.log(err));
-    });
-
-    app.listen(PORT, () => console.log(`server running on PORT ${PORT}`));
+app.get('/', (req, res) => {
+    res.json('Welcome to Climate Change News API');
 });
+
+app.get('/news', async (req, res) => {
+    let articles = [];
+    for (const newspaper of newspapers) {
+        const newspaperArticles = await fetchArticles(newspaper);
+        articles = articles.concat(newspaperArticles);
+    }
+    res.json(articles);
+});
+
+app.get('/news/:newspaperId', async (req, res) => {
+    const newspaperId = req.params.newspaperId;
+    const newspaper = newspapers.find(newspaper => newspaper.name === newspaperId);
+    if (!newspaper) {
+        return res.status(404).json({ error: 'Newspaper not found' });
+    }
+
+    const specificArticles = await fetchArticles(newspaper);
+    res.json(specificArticles);
+});
+
+app.listen(PORT, () => console.log(`server running on PORT ${PORT}`));
