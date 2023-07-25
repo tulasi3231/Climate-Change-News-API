@@ -5,7 +5,7 @@ The project is deployed via render : https://climate-change-news-api-x7t8.onrend
 
 To view the news : https://climate-change-news-api-x7t8.onrender.com/news
 
-Three newspapers—The Times, The Guardian, and Telegraph—will only be included in this initiative.
+Three newspapers—The Times, The Guardian, and Telegraph — will only be included in this initiative.
 
 To view the news specific to The Times : https://climate-change-news-api-x7t8.onrender.com/news/theTimes
 
